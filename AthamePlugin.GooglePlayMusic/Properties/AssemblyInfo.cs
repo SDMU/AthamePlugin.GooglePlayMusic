@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("AthamePlugin.GooglePlayMusic")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Athame Google Play Music plugin")]
+[assembly: AssemblyDescription("Plugin for Google Play Music")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("AthamePlugin.GooglePlayMusic")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
+[assembly: AssemblyCompany("svbnet")]
+[assembly: AssemblyProduct("Athame Google Play Music plugin")]
+[assembly: AssemblyCopyright("Copyright © svbnet 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
