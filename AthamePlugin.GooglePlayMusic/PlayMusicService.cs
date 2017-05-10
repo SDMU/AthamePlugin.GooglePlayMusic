@@ -13,9 +13,20 @@ namespace AthamePlugin.GooglePlayMusic
 {
     public class PlayMusicService : MusicService, IUsernamePasswordAuthenticationAsync
     {
+        public override int ApiVersion => 1;
+
+        public override PluginInfo Info => new PluginInfo
+        {
+            Name = "Google Play Music",
+            Description = "Plugin for the Google Play Music service.",
+            Author = "svbnet",
+            Website = new Uri("https://svbnet.co")
+        };
+
         private const string GooglePlayHost = "play.google.com";
         private MobileClient client = new MobileClient();
         private PlayMusicServiceSettings settings = new PlayMusicServiceSettings();
+
 
         private Artist CreateArtist(GoogleMusicApi.Structure.Track track)
         {
@@ -202,15 +213,13 @@ namespace AthamePlugin.GooglePlayMusic
         }
 
         public override Uri[] BaseUri => new[] { new Uri("http://" + GooglePlayHost), new Uri("https://" + GooglePlayHost) };
-        public override string Name => "Google Play Music";
-        public override string Description => "Plugin for the Google Play Music service.";
-        public override string Author => "svbnet";
-        public override Uri Website => new Uri("https://svbnet.co");
-        public override PluginVersion ApiVersion => PluginVersion.V1;
+
+
+
 
         public override void Init(AthameApplication application, PluginContext pluginContext)
         {
-            
+
         }
 
         public async Task<bool> AuthenticateAsync(string username, string password, bool rememberUser)
