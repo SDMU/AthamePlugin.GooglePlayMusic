@@ -54,6 +54,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GooglePlayPicture.cs" />
+    <Compile Include="ModelAdaptor.cs" />
     <Compile Include="PlayMusicService.cs" />
     <Compile Include="PlayMusicServiceSettings.cs" />
     <Compile Include="PlayMusicSettingsControl.cs">
@@ -71,6 +73,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

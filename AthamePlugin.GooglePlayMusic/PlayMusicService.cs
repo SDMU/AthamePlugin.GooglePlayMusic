@@ -13,83 +13,20 @@ namespace AthamePlugin.GooglePlayMusic
 {
     public class PlayMusicService : MusicService, IUsernamePasswordAuthenticationAsync
     {
-        public override int ApiVersion => 1;
+        public override int ApiVersion => 2;
 
         public override PluginInfo Info => new PluginInfo
         {
             Name = "Google Play Music",
             Description = "Plugin for the Google Play Music service.",
             Author = "svbnet",
-            Website = new Uri("https://svbnet.co")
+            Website = new Uri("https://github.com/svbnet/AthamePlugin.GooglePlayMusic")
         };
 
         private const string GooglePlayHost = "play.google.com";
         private MobileClient client = new MobileClient();
         private PlayMusicServiceSettings settings = new PlayMusicServiceSettings();
 
-
-        private Artist CreateArtist(GoogleMusicApi.Structure.Track track)
-        {
-            return new Artist
-            {
-                Id = track.ArtistIds[0],
-                Name = track.Artist
-            };
-        }
-
-        private Artist CreateArtist(GoogleMusicApi.Structure.Album album)
-        {
-            return new Artist
-            {
-                Id = album.ArtistId[0],
-                Name = album.AlbumArtist
-            };
-        }
-
-        private Track CreateTrack(GoogleMusicApi.Structure.Track gpmTrack)
-        {
-            return new Track
-            {
-                Artist = CreateArtist(gpmTrack),
-                DiscNumber = gpmTrack.DiscNumber,
-                Genre = gpmTrack.Genre,
-                Title = gpmTrack.Title,
-                Year = gpmTrack.Year,
-                TrackNumber = gpmTrack.TrackNumber,
-                Id = gpmTrack.StoreId,
-                // AFAIK tracks returned will always be downloadable or else the server will give a 404/403/400
-                IsDownloadable = true
-            };
-        }
-
-        private Album CreateAlbum(GoogleMusicApi.Structure.Album gpmAlbum)
-        {
-            var a = new Album
-            {
-                Artist = CreateArtist(gpmAlbum),
-                CoverUri = new Uri(gpmAlbum.AlbumArtRef),
-                Title = gpmAlbum.Name,
-                Tracks = new List<Track>()
-            };
-            if (gpmAlbum.Tracks != null)
-            {
-                foreach (var track in gpmAlbum.Tracks)
-                {
-                    var cmTrack = CreateTrack(track);
-                    cmTrack.Album = a;
-                    ((List<Track>)a.Tracks).Add(cmTrack);
-                }
-
-            }
-            return a;
-        }
-
-        private Album CreateAlbum(GoogleMusicApi.Structure.Album album, List<GoogleMusicApi.Structure.Track> tracks)
-        {
-            var a = CreateAlbum(album);
-            a.Tracks = new List<Track>(from t in tracks select CreateTrack(t));
-            return a;
-        }
 
         public override async Task<TrackFile> GetDownloadableTrackAsync(Track track)
         {
@@ -111,9 +48,28 @@ namespace AthamePlugin.GooglePlayMusic
             };
         }
 
-        public override Task<Playlist> GetPlaylistAsync(string playlistId)
+        public override async Task<Playlist> GetPlaylistAsync(string playlistId)
         {
-            throw new NotImplementedException();
+            // Shitty URL decode implementation because honestly,
+            // playlist ID handling is a mess
+            playlistId = playlistId.Replace("%3D", "=");
+            var playlistResponse = await client.ListPlaylistsAsync();
+            var playlists = playlistResponse.Data.Items;
+            var playlistInfo = (from playlist in playlists
+                where playlist.ShareToken == playlistId
+                select playlist).FirstOrDefault();
+            if (playlistInfo == null)
+            {
+                throw new Exception("Playlist not found, or is not a user playlist. Only playlists the user owns can be downloaded at present.");
+            }
+            var items = await client.ListTracksFromPlaylist(playlistInfo);
+            return new Playlist
+            {
+                Id = playlistInfo.Id,
+                Title = playlistInfo.Name,
+                Tracks = (from track in items where track != null select track.ToAthameTrack()).ToList()
+            };
+
         }
 
         public override UrlParseResult ParseUrl(Uri url)
@@ -166,7 +122,7 @@ namespace AthamePlugin.GooglePlayMusic
             {
                 // Album should always have tracks
                 var album = await client.GetAlbumAsync(albumId, includeDescription: false);
-                return CreateAlbum(album);
+                return album.ToAthameAlbum();
             }
             catch (HttpRequestException ex)
             {
@@ -178,7 +134,7 @@ namespace AthamePlugin.GooglePlayMusic
         public override async Task<Track> GetTrackAsync(string trackId)
         {
             var track = await client.GetTrackAsync(trackId);
-            return CreateTrack(track);
+            return track.ToAthameTrack();
         }
 
         public void Reset()
