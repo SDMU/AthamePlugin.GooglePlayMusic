@@ -8,6 +8,7 @@ namespace AthamePlugin.GooglePlayMusic
 
         public string Email { get; set; }
         public string SessionToken { get; set; }
+        public string DisplayName { get; set; }
 
         public PlayMusicServiceSettings()
         {

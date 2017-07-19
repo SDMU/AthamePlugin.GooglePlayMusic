@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="Athame.PluginAPI">
       <HintPath>..\..\Athame\Athame.PluginAPI\bin\Release\Athame.PluginAPI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="GoogleMusicApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Music.Api.1.0.0.20\lib\net452\GoogleMusicApi.dll</HintPath>

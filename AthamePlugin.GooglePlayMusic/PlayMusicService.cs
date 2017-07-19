@@ -8,12 +8,18 @@ using Athame.PluginAPI;
 using Athame.PluginAPI.Downloader;
 using Athame.PluginAPI.Service;
 using GoogleMusicApi.Common;
+using GoogleMusicApi.Structure;
+using Album = Athame.PluginAPI.Service.Album;
+using Artist = Athame.PluginAPI.Service.Artist;
+using Playlist = Athame.PluginAPI.Service.Playlist;
+using SearchResult = Athame.PluginAPI.Service.SearchResult;
+using Track = Athame.PluginAPI.Service.Track;
 
 namespace AthamePlugin.GooglePlayMusic
 {
     public class PlayMusicService : MusicService, IUsernamePasswordAuthenticationAsync
     {
-        public override int ApiVersion => 2;
+        public override int ApiVersion => 3;
 
         public override PluginInfo Info => new PluginInfo
         {
@@ -72,6 +78,11 @@ namespace AthamePlugin.GooglePlayMusic
 
         }
 
+        public override PagedMethod<Track> GetPlaylistItems(string playlistId, int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
         public override UrlParseResult ParseUrl(Uri url)
         {
             if (url.Host != GooglePlayHost)
@@ -110,10 +121,24 @@ namespace AthamePlugin.GooglePlayMusic
             return result;
         }
 
-        public override Task<SearchResult> SearchAsync(string searchText, MediaType typesToRetrieve)
+        public override SearchResult Search(string searchText, MediaType typesToRetrieve, int itemsPerPage)
         {
             throw new NotImplementedException();
+        }
 
+        public override Task<Artist> GetArtistInfoAsync(string artistId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override PagedMethod<Track> GetArtistTopTracks(string artistId, int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override PagedMethod<Album> GetArtistAlbums(string artistId, int itemsPerPage)
+        {
+            throw new NotImplementedException();
         }
 
         public override async Task<Album> GetAlbumAsync(string albumId, bool withTracks)
@@ -143,6 +168,26 @@ namespace AthamePlugin.GooglePlayMusic
 
         }
 
+        public PagedMethod<Track> GetUserSavedTracks(int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public PagedMethod<Artist> GetUserSavedArtists(int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public PagedMethod<Album> GetUserSavedAlbums(int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public PagedMethod<Playlist> GetUserSavedPlaylists(int itemsPerPage)
+        {
+            throw new NotImplementedException();
+        }
+
         public AccountInfo Account { get; private set; }
 
         public bool IsAuthenticated => client.Session != null && client.Session.IsAuthenticated;
@@ -165,6 +210,7 @@ namespace AthamePlugin.GooglePlayMusic
                 {
                     DisplayId = settings.Email
                 };
+                if (settings.DisplayName != null) Account.DisplayName = settings.DisplayName;
             }
         }
 
@@ -194,6 +240,8 @@ namespace AthamePlugin.GooglePlayMusic
             {
                 settings.SessionToken = client.Session.MasterToken;
                 settings.Email = username;
+                settings.DisplayName = Account.DisplayName;
+
             }
             return true;
         }
