@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Athame.PluginAPI.Service;
+using GoogleMusicApi.Structure.Enums;
 
 namespace AthamePlugin.GooglePlayMusic
 {
@@ -18,6 +19,14 @@ namespace AthamePlugin.GooglePlayMusic
             };
         }
 
+        public static Artist GetAthameAlbumArtist(this GoogleMusicApi.Structure.Track googlePlayTrack)
+        {
+            return new Artist
+            {
+                Name = googlePlayTrack.AlbumArtist
+            };
+        }
+
         public static Artist GetAthameArtist(this GoogleMusicApi.Structure.Album googlePlayAlbum)
         { 
             return new Artist
@@ -27,11 +36,24 @@ namespace AthamePlugin.GooglePlayMusic
             };
         }
 
+        public static Album AlbumFromTrack(this GoogleMusicApi.Structure.Track googlePlayTrack)
+        {
+            return new Album
+            {
+                Id = googlePlayTrack.AlbumId,
+                Artist = googlePlayTrack.GetAthameAlbumArtist(),
+                CoverPicture = new GooglePlayPicture(googlePlayTrack.AlbumArtReference[0].Url),
+                Title = googlePlayTrack.Album,
+                Type = AlbumType.Album
+            };
+        }
+
         public static Track ToAthameTrack(this GoogleMusicApi.Structure.Track googlePlayTrack)
         {
             return new Track
             {
                 Artist = googlePlayTrack.GetAthameArtist(),
+                Album = googlePlayTrack.AlbumFromTrack(),
                 DiscNumber = googlePlayTrack.DiscNumber,
                 Genre = googlePlayTrack.Genre,
                 Title = googlePlayTrack.Title,
@@ -40,6 +62,16 @@ namespace AthamePlugin.GooglePlayMusic
                 Id = googlePlayTrack.StoreId,
                 Duration = new TimeSpan(0, 0, 0, 0, (int)googlePlayTrack.DurationMillis),
                 Composer = googlePlayTrack.Composer,
+                CustomMetadata = new List<Metadata>
+                {
+                    new Metadata
+                    {
+                        Name = "Explicit",
+                        CanDisplay = true,
+                        IsFlag = true,
+                        Value = (googlePlayTrack.ExplicitType == ExplicitType.Explicit).ToString()
+                    }
+                },
                 // AFAIK tracks returned will always be downloadable or else the server will give a 404/403/400
                 IsDownloadable = true
             };

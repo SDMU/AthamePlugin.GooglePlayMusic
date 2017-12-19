@@ -73,7 +73,7 @@ namespace AthamePlugin.GooglePlayMusic
             {
                 Id = playlistInfo.Id,
                 Title = playlistInfo.Name,
-                Tracks = (from track in items where track != null select track.ToAthameTrack()).ToList()
+                Tracks = (from track in items where track != null select track.ToAthameTrack()).ToList(),
             };
 
         }
@@ -271,12 +271,6 @@ namespace AthamePlugin.GooglePlayMusic
         {
             if (settings.SessionToken == null) return false;
             if (!await client.LoginWithToken(settings.Email, settings.SessionToken)) return false;
-
-            Account = new AccountInfo
-            {
-                DisplayId = settings.Email,
-                DisplayName = client.Session.FirstName + " " + client.Session.LastName
-            };
             return true;
         }
     }
