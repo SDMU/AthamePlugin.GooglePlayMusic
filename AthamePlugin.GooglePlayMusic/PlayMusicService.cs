@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using System.Windows.Forms;
 using Athame.PluginAPI;
 using Athame.PluginAPI.Downloader;
@@ -62,8 +63,8 @@ namespace AthamePlugin.GooglePlayMusic
             var playlistResponse = await client.ListPlaylistsAsync();
             var playlists = playlistResponse.Data.Items;
             var playlistInfo = (from playlist in playlists
-                where playlist.ShareToken == playlistId
-                select playlist).FirstOrDefault();
+                                where playlist.ShareToken == playlistId
+                                select playlist).FirstOrDefault();
             if (playlistInfo == null)
             {
                 throw new Exception("Playlist not found, or is not a user playlist. Only playlists the user owns can be downloaded at present.");
@@ -83,12 +84,54 @@ namespace AthamePlugin.GooglePlayMusic
             throw new NotImplementedException();
         }
 
-        public override UrlParseResult ParseUrl(Uri url)
+        private MediaType ParseType(string type)
         {
-            if (url.Host != GooglePlayHost)
+            switch (type)
             {
-                return null;
+                case "album":
+                    return MediaType.Album;
+
+
+                case "artist":
+                    return MediaType.Artist;
+
+                // Will auto-playlists actually be interchangeable with user-generated playlists?
+                case "pl":
+                case "ap":
+                    return MediaType.Playlist;
+
+                default:
+                    return MediaType.Unknown;
+
             }
+        }
+
+        private string ParseId(string id)
+        {
+            // Some IDs have "_cid" on the end of them for some reason
+            var part = id.LastIndexOf("_cid", StringComparison.Ordinal);
+            return part == -1 ? id : id.Substring(0, part);
+        }
+
+        private MediaType GetTypeFromId(string id)
+        {
+            var firstChar = id[0];
+            switch (firstChar)
+            {
+                case 'B':
+                    return MediaType.Album;
+
+                case 'A':
+                    return MediaType.Artist;
+
+                default:
+                    return MediaType.Unknown;
+            }
+        }
+
+        private UrlParseResult ParsePlayerUrl(Uri url)
+        {
+            // eg https://play.google.com/music/listen?authuser&u=0#/album/Bxrl5ep5hy42lcgslqo2g763fmi/21+Savage/Savage+Mode
             var hashParts = url.Fragment.Split('/');
 
             if (hashParts.Length <= 2)
@@ -97,28 +140,75 @@ namespace AthamePlugin.GooglePlayMusic
             }
             var type = hashParts[1];
             var id = hashParts[2];
-            var result = new UrlParseResult { Id = id, Type = MediaType.Unknown, OriginalUri = url };
-            switch (type)
-            {
-                case "album":
-                    result.Type = MediaType.Album;
-                    break;
+            var result = new UrlParseResult { Id = ParseId(id), Type = ParseType(type), OriginalUri = url };
 
-                case "artist":
-                    result.Type = MediaType.Artist;
-                    break;
-
-                // Will auto-playlists actually be interchangeable with user-generated playlists?
-                case "pl":
-                case "ap":
-                    result.Type = MediaType.Playlist;
-                    break;
-
-                default:
-                    result.Type = MediaType.Unknown;
-                    break;
-            }
             return result;
+        }
+
+        private UrlParseResult ParseStoreUrl(Uri url)
+        {
+            // eg https://play.google.com/store/music/album/Lil_Uzi_Vert_Luv_Is_Rage_2?id=Bmik43oo2xc3h5pzowdtwkiojue
+            // or https://play.google.com/store/music/album?id=Bmik43oo2xc3h5pzowdtwkiojue
+            var components = url.AbsolutePath.Split('/');
+            if (components.Length < 4)
+            {
+                return null;
+            }
+            var type = components[3];
+            var id = HttpUtility.ParseQueryString(url.Query)["id"];
+            return new UrlParseResult
+            {
+                Id = ParseId(id),
+                Type = ParseType(type),
+                OriginalUri = url
+            };
+        }
+
+        private UrlParseResult ParseShareUrl(Uri url)
+        {
+            // Album eg https://play.google.com/music/m/Bxrl5ep5hy42lcgslqo2g763fmi?t=Savage_Mode_-_21_Savage
+            // Artist eg https://play.google.com/music/m/Au33qvmzpymx7257omufin4wa7e?t=21_Savage
+            // Playlist eg https://play.google.com/music/playlist/AMaBXymt04scFikIqJ1XbwNRMi63xz3flhAlDGtayY4oWb9-Z2PSN6Z-TvjEvoq3Tt0UBolosqL04VBvXE1Ky_ZtSpuXbGWk6A%3D%3D
+            var components = url.AbsolutePath.Split('/');
+            if (components.Length < 4)
+            {
+                return null;
+            }
+            var basicType = components[2];
+            var id = components[3];
+            switch (basicType)
+            {
+                case "m":
+                    return new UrlParseResult
+                    {
+                        Id = ParseId(id),
+                        Type = GetTypeFromId(id),
+                        OriginalUri = url
+                    };
+                case "playlist":
+                    return new UrlParseResult
+                    {
+                        Id = ParseId(id),
+                        Type = MediaType.Playlist,
+                        OriginalUri = url
+                    };
+                default:
+                    return null;
+            }
+        }
+
+        public override UrlParseResult ParseUrl(Uri url)
+        {
+            if (url.Host != GooglePlayHost)
+            {
+                return null;
+            }
+            UrlParseResult result;
+            if ((result = ParsePlayerUrl(url)) != null) return result;
+            if ((result = ParseShareUrl(url)) != null) return result;
+            if ((result = ParseStoreUrl(url)) != null) return result;
+            
+            return null;
         }
 
         public override SearchResult Search(string searchText, MediaType typesToRetrieve, int itemsPerPage)
